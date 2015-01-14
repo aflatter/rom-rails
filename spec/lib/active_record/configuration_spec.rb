@@ -1,5 +1,6 @@
 require 'spec_helper'
 require 'rom/rails/active_record/configuration'
+require 'addressable/uri'
 
 describe ROM::Rails::ActiveRecord::Configuration do
   let(:root) { Pathname.new('/path/to/app') }
@@ -14,7 +15,7 @@ describe ROM::Rails::ActiveRecord::Configuration do
   end
 
   def parse(uri)
-    URI.parse(uri.gsub(/^jdbc:/, ''))
+    Addressable::URI.parse(uri.gsub(/^jdbc:/, ''))
   end
 
   it 'raises an error without specifying a database'
@@ -61,6 +62,32 @@ describe ROM::Rails::ActiveRecord::Configuration do
     it 'properly handles configuration without a host' do
       uri = uri_for(adapter: 'postgresql', database: 'test')
       expect(uri).to eql('postgres:///test')
+    end
+
+    it 'properly handles authentication even without a host' do
+      uri = parse(uri_for(
+        adapter: 'postgresql',
+        database: 'test',
+        username: 'user',
+        password: 'pass'
+      ))
+
+      expect(uri.hostname).to be_empty
+      expect(uri.userinfo).to be_nil
+      expect(uri.query_values).to eq('username' => 'user', 'password' => 'pass')
+    end
+
+    it 'properly handles authentication even without host and database' do
+      uri = parse(uri_for(
+        adapter: 'postgresql',
+        username: 'user',
+        password: 'pass'
+      ))
+
+      expect(uri.hostname).to be_empty
+      expect(uri.path).to be_empty
+      expect(uri.userinfo).to be_nil
+      expect(uri.query_values).to eq('username' => 'user', 'password' => 'pass')
     end
   end
 

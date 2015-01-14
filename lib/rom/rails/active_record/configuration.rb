@@ -75,10 +75,15 @@ module ROM
         end
 
         def self.postgresql_uri(config)
-          generic_uri(config.merge(
-            host: config.fetch(:host) { '' },
-            scheme: 'postgres'
-          ))
+          config.update(scheme: 'postgres')
+
+          unless config[:host]
+            config.update(host: '')
+            auth_params = config.extract!(:username, :password)
+            config.update(query_values: auth_params) if auth_params.any?
+          end
+
+          generic_uri(config)
         end
 
         def self.mysql_uri(config)
@@ -96,7 +101,8 @@ module ROM
             password: config[:password],
             host: config[:host],
             port: config[:port],
-            path: config[:database]
+            path: config[:database],
+            query_values: config[:query_values]
           )
         end
 
